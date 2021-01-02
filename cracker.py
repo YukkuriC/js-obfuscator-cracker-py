@@ -3,13 +3,13 @@ r'''
 使用全局参数配置相关信息
 
 # 固定参数
-INPUT_JS: 输入待替换文件（第一行起始包含base64关键字表；第二行为实际加密内容）
+INPUT_JS: 输入待替换文件（第一行起始包含base64关键字表；后续为实际加密内容）
 OUTPUT_JS: 输出初步解密文件，请配合格式化工具使用
 
-# 可选覆盖参数
-KW_LIST: 关键字查询表，若不指定则尝试由源码获取
-OFFSET：关键字表滚转次数，若不指定则尝试由源码获取
-GETTER: getter函数名称，若不指定则尝试由源码获取
+# 可选覆盖参数（可覆盖，默认由源码获取）
+KW_LIST: 关键字查询表
+OFFSET：关键字表滚转次数
+GETTER: getter函数名称
 '''
 
 import base64 as b64, collections as c
@@ -24,6 +24,10 @@ Q = lambda s: f'''['"]{s}['"]'''
 A = lambda s: r'\[' + s + r'\]'
 _ATTR = A(Q('(\w+)'))
 _HEX = r'0x[\da-fA-F]+'
+_LINEWRAPS = [
+    r'(?<=;)(?!\s)',
+    r'(?<=\})(?=[\w\{\[])',
+]
 
 
 def main():
@@ -85,12 +89,13 @@ def main():
         data = new_data
 
     # 换行
-    data = data.replace(r'(?<=;)(?!\s)', '\n')
-    data = re.sub(r'(?<=\})(?=[\w\{\[])', '\n', data)
+    for pattern in _LINEWRAPS:
+        data = re.sub(pattern, '\n', data)
 
     # 下标访问简化v2
-    data = re.sub(rf"^{_ATTR}", r'\1', data,
-                  flags=re.M)  # ['param'](args) -> param(args)
+    data = re.sub(
+        rf"^{_ATTR}", r'\1', data,
+        flags=re.M)  # ['param'](args) -> param(args)
 
     # 替换复杂表示
     data = data.replace('!![]', 'true').replace('![]', 'false')
@@ -107,8 +112,9 @@ if __name__ == '__main__':
     import os, sys
     args = sys.argv
     if len(args) <= 1:
-        print('Usage: python cracker.py INPUT_JS [OUTPUT_JS="./output.js"]',
-              file=sys.stderr)
+        print(
+            'Usage: python cracker.py INPUT_JS [OUTPUT_JS="./output.js"]',
+            file=sys.stderr)
         exit(1)
     INPUT_JS = args[1]
     if len(args) > 2:
