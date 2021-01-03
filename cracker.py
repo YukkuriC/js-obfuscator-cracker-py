@@ -98,7 +98,7 @@ def main():
         flags=re.M)  # ['param'](args) -> param(args)
 
     # 替换复杂表示
-    data = data.replace('!![]', 'true').replace('![]', 'false')
+    data = data.replace('!![]', ' true').replace('![]', ' false')
     data = re.sub(rf'(?<![\w_])({_HEX})', lambda m: str(eval(m.groups()[0])),
                   data)
 
