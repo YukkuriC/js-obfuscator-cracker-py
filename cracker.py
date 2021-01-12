@@ -37,7 +37,11 @@ def main():
         print('Invalid INPUT_JS param!')
         exit(1)
     with open(INPUT_JS, encoding='utf-8') as f:
-        mapper, data = f.read().strip().split('\n', 1)
+        data = []
+        for line in map(str.strip, f.read().split('\n')):
+            if not line.startswith('//'):
+                data.append(line)
+        mapper, data = data[0], '\n'.join(data[1:])
 
     # 获取关键字表+滚转
     keywords = globals().get('KW_LIST')
@@ -49,8 +53,8 @@ def main():
     # 获取滚转次数
     offset = globals().get('OFFSET')
     if not offset:
-        lst_name = re.match(r'var (\w+)=',
-                            mapper).groups()[0]  # var _0x254e=[...];
+        lst_name = re.match(r'(var|let|const) (\w+)=',
+                            mapper).groups()[1]  # var _0x254e=[...];
         offset = re.search(rf'\({lst_name},(0x\w+)\)',
                            mapper).groups()[0]  # (_0x254e,0xc0)
         offset = eval(offset)
@@ -58,7 +62,7 @@ def main():
     # 获取mapper函数
     getter = globals().get('GETTER')
     if not getter:
-        tmp = c.Counter(re.findall(rf'''(_{_HEX})\({Q(_HEX)}\)''', data))
+        tmp = c.Counter(re.findall(rf'''([\w_]+)\({Q(_HEX)}\)''', data))
         getter = tmp.most_common(1)[0][0]
 
     # 滚转表
